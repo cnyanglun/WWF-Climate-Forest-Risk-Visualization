@@ -1,5 +1,7 @@
 # VIS-Assignment 4 - Report
 
+![](./pics/Gemini_Generated_Image_lnrbcilnrbcilnrb.png)
+
 ## 1. Data, users, and tasks (25 points)
 ```
 Please create a detailed description of your users and enrich the information about the 2 distinct users mentioned above and their corresponding tasks (min. 6 tasks total). Give a detailed data description (interesting features, missing values, etc.) and link it to the tasks. To help your users do their jobs, you should verify that your data selection supports the requirements of their tasks. For example, you could load the data into Tableau and inspect the data closely (inspect given features, missing values, etc.).

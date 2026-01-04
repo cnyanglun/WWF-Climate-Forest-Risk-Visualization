@@ -11,7 +11,7 @@ export const useStore = defineStore({
     geoData: null,              // Word Map Json
 
     // Global Filter
-    selectedCountries: [],      // 用户点击地图或散点选中的国家
+    selectedCountries: ['BLR', 'ALB', 'BTN'],      // 用户点击地图或散点选中的国家
     timeRange: [1992, 2023],     // 这里的日期可能要写死，规定只展示某个时间段
 
     isLoading: true
@@ -34,6 +34,7 @@ export const useStore = defineStore({
         const yearColumns = d3.range(1992, 2024).map(String)
         this.disasterData = disaster.map(d => {
           yearColumns.forEach(year => {
+            // 将缺失值设置为0
             d[year] = d[year] === "" ? 0 : +d[year]
           })
           return d

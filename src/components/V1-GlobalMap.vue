@@ -58,8 +58,7 @@
 
     // 使用自然地球投影
     projection = d3.geoNaturalEarth1()
-      .scale(width / 1.6 / Math.PI)
-      .translate([width/2, height/2])
+      .fitSize([width, height], store.geoData);
     
     path = d3.geoPath().projection(projection)
 

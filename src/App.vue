@@ -13,15 +13,15 @@
         </section>
 
         <section class="view-v2">
-
+          <RiskScatterPlot/>
         </section>
 
         <section class="view-v3">
-
+          <TimeSeriesChart/>
         </section>
 
         <section class="view-v4">
-
+          <DisasterComposition/>
         </section>
 
       </main>
@@ -40,6 +40,9 @@ const store = useStore();
 
 // Import components
 import GlobalMap from '@/components/V1-GlobalMap.vue'
+import RiskScatterPlot from '@/components/V2-RiskScatterPlot.vue'
+import TimeSeriesChart from '@/components/V3-TimeSeriesChart.vue'
+import DisasterComposition from '@/components/V4-DisasterComposition.vue'
 
 
 // Load data when component is mounted
@@ -48,6 +51,7 @@ onMounted(() => {
 });
 </script>
 
+
 <style>
   /* 核心：强制全屏且无滚动条 */
   html, body, #app {
@@ -55,7 +59,7 @@ onMounted(() => {
     padding: 0;
     height: 100vh;
     width: 100vw;
-    overflow: hidden; /* 禁止滚动 */
+    overflow: hidden; /* A5 准则：禁止滚动 */
     font-family: sans-serif;
   }
 
@@ -63,41 +67,38 @@ onMounted(() => {
     display: flex;
     flex-direction: column;
     height: 100%;
-    padding: 10px;
+    padding: 15px; /* 稍微增加内边距更美观 */
     box-sizing: border-box;
     background-color: #f5f5f5;
   }
 
   .dashboard-header {
-    height: 60px;
-    text-align: center;
+    height: 50px; /* 固定标题高度 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
-  /* 4视图布局设计 */
+  /* 4视图均等布局设计 (2x2 田字格) */
   .dashboard-content {
     flex: 1;
     display: grid;
-    grid-template-columns: 1.2fr 1fr; /* 左边地图宽一点 */
-    grid-template-rows: 1fr 1fr 0.8fr; /* 底部折线图稍微窄一点 */
-    grid-gap: 15px;
+    /* 改为 1fr 1fr 实现等分列宽 */
+    grid-template-columns: 1fr 1fr; 
+    /* 改为 1fr 1fr 实现等分行高 */
+    grid-template-rows: 1fr 1fr; 
+    grid-gap: 20px; /* 增加间距增加呼吸感 */
     overflow: hidden;
   }
 
-  .view-v1 {
-    grid-row: span 2; /* 地图跨两行 */
+  /* 移除所有的 span 跨度，让它们各自占据一个格子 */
+  .view-v1, .view-v2, .view-v3, .view-v4 {
     background: white;
     border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  }
-
-  .view-v2, .view-v4, .view-v3 {
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  }
-
-  .view-v3 {
-    grid-column: span 2; /* 折线图跨两列 */
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08); /* 稍微增强阴影让卡片感更强 */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* 确保图表不溢出容器 */
   }
 
   .loading-overlay {
