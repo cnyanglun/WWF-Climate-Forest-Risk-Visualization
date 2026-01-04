@@ -79,29 +79,32 @@
       .domain([minValue, 0, maxValue])
       .interpolator(d3.interpolateRdYlGn)
 
+    // In GeoJson，country is ISO3166-1-Alpha-3 instead of ISO3
     const conutries = g.selectAll('.country')
       .data(store.geoData.features)
       .join('path')
       .attr('class', 'country')
       .attr('d', path)
       .attr('fill', d => {
-        const iso3 = d.id || d.properties.ISO_A3
-        const val = metrics.get(iso3)
-        return val !== undefined ? colorScale(val) : '#eee' // 没有定义的显示灰色
+        // 这里的键名必须与你 Console 打印的一致
+        const iso3 = d.properties['ISO3166-1-Alpha-3']; 
+        const val = metrics.get(iso3);
+        return val !== undefined ? colorScale(val) : '#eee';
       })
       .attr('stroke', d => {
-        const iso3 = d.id || d.properties.ISO_A3
-        const val = metrics.get(iso3)
-        return store.selectedCountries.includes(iso3) ? "#333" : "#fff";
+        const iso3 = d.properties['ISO3166-1-Alpha-3'];
+        return store.selectedCountries.includes(iso3) ? "#000" : "#fff";
       })
       .attr("stroke-width", d => {
-        const iso3 = d.id || d.properties.ISO_A3;
+        const iso3 = d.properties['ISO3166-1-Alpha-3'];
         return store.selectedCountries.includes(iso3) ? 2 : 0.5;
       })
       .on('click', (event, d) => {
-        const iso3 = d.id || d.properties.ISO_A3;
-        store.toggleCountry(iso3); // 触发联动
+        const iso3 = d.properties['ISO3166-1-Alpha-3'];
+        console.log("Confirmed ISO3:", iso3); 
+        if (iso3) store.toggleCountry(iso3);
       })
+
       .on('mouseover', (event, d) => {
         const iso3 = d.id || d.properties.ISO_A3;
         const val = metrics.get(iso3);
@@ -151,16 +154,49 @@
   onMounted(() => {
     // 基础 D3 初始化逻辑将在这里编写
     console.log("Map component mounted");
-    if (store.geoData) initMap();
+    if(!store.isLoading && store.geoData) initMap();
   });
 
   // 监听 store 变化进行重绘
-  watch([() => store.isLoading, () => store.timeRange, () => store.selectedCountries], () => {
-    if (!store.isLoading) {
-      if (!svg) initMap();
-      else updateMap();
-    }
+  // 1. 只有当时间范围或基础数据变化时，才全量重绘地图颜色（耗时操作）
+  watch([
+    () => store.timeRange, () => store.isLoading], 
+    () => {
+      if (!store.isLoading) updateMap();
+    }, 
+    { deep: true });
+
+  // 2. 当仅仅是选中的国家变化时，只更新描边
+  watch(() => store.selectedCountries, (newSelected) => {
+    if (!g) return;
+
+    // 获取所有国家路径的选择集
+    const countries = g.selectAll('.country');
+
+    // 【步骤 1】 立即将选中的国家置顶 (raise)，这样边框才不会被邻国遮挡
+    // 我们先过滤出选中的元素，然后调用 raise
+    countries
+      .filter(d => {
+        const iso3 = d.properties['ISO3166-1-Alpha-3'];
+        return newSelected.includes(iso3);
+      })
+      .raise();
+
+    // 【步骤 2】 执行平滑的描边动画
+    countries
+      .transition()
+      .duration(300)
+      .attr('stroke', d => {
+        const iso3 = d.properties['ISO3166-1-Alpha-3'];
+        return newSelected.includes(iso3) ? "#000" : "#fff";
+      })
+      .attr('stroke-width', d => {
+        const iso3 = d.properties['ISO3166-1-Alpha-3'];
+        return newSelected.includes(iso3) ? 2.5 : 0.5;
+      });
   }, { deep: true });
+
+
 </script>
 
 <style scoped>
@@ -210,5 +246,21 @@
 
 .legend-container {
   font-size: 10px;
+}
+
+.country {
+  transition: fill 0.2s, opacity 0.2s; /* 让颜色填充更丝滑 */
+}
+
+/* 鼠标悬停时的即时反馈 */
+.country:hover {
+  opacity: 0.8;
+  filter: brightness(1.1);
+  cursor: pointer;
+}
+
+/* 只有选中的国家路径会应用这个 CSS 效果（可选） */
+.country-selected {
+  filter: drop-shadow(0px 0px 2px rgba(0,0,0,0.5));
 }
 </style>

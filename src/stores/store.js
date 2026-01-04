@@ -11,7 +11,8 @@ export const useStore = defineStore({
     geoData: null,              // Word Map Json
 
     // Global Filter
-    selectedCountries: ['BLR', 'ALB', 'BTN'],      // 用户点击地图或散点选中的国家
+    // selectedCountries: ['BLR', 'ALB', 'BTN'],      // 用户点击地图或散点选中的国家
+    selectedCountries: [], 
     timeRange: [1992, 2023],     // 这里的日期可能要写死，规定只展示某个时间段
 
     isLoading: true
@@ -53,13 +54,20 @@ export const useStore = defineStore({
       }
     },
     // 切换国家选中状况（Toggle模式）
-    toggleCountry(countryName){
-      const index = this.selectedCountries.indexOf(countryName)
-      // 修复：改为 -1
-      if(index > -1){
-        this.selectedCountries.splice(index, 1)
+    toggleCountry(iso3) {
+      if (!iso3) return;
+      const index = this.selectedCountries.indexOf(iso3);
+      if (index > -1) {
+        this.selectedCountries.splice(index, 1);
       } else {
-        this.selectedCountries.push(countryName)
+        // 限制最多选中 6 个国家，防止图表线条乱如麻
+        if (this.selectedCountries.length < 6) {
+          this.selectedCountries.push(iso3);
+        } else {
+          // 达到上限时，去掉第一个，加入最新的
+          this.selectedCountries.shift();
+          this.selectedCountries.push(iso3);
+        }
       }
     },
 
