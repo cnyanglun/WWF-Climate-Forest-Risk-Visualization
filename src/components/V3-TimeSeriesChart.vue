@@ -23,41 +23,31 @@
         if (!store.forestData.length || !store.disasterData.length) return [];
 
         const years = d3.range(1992, 2023)
-        const result = []
 
-        // 方便测试，我们只处理第一个选中的国家
-        // const targetISO = store.selectedCountries[0]
-        // 优先使用用户选中的，没有则默认显示 ARM
-        // 注意有些国家并没有Carbon stocks in forests这个指标，比如AFG
-        const targetISO = (store.selectedCountries[0] || 'ARM').trim();
+        return store.selectedCountries.map(iso => {
+            const targetISO = iso.trim();
+            const countryResult = { iso: targetISO, carbon: null, disasters: null };
 
-        // 提取森林碳储量趋势数据
-        const forestRow = store.forestData.find(d => d.ISO3 === targetISO)
-        const carbonValues = years.map(y => ({
-            year: y,
-            value: (forestRow && forestRow[y]) ? +forestRow[y] : 0,
-            type: 'Carbon Stock'
-        }));
-        result.push({ type: 'Carbon', values: carbonValues });
-        // console.log('result: ', result)
-
-        // 提取灾难频率趋势数据（Indicator包括TOTAL）
-        const disasterRow = store.disasterData.find(d => 
-            d.ISO3 === targetISO && d.Indicator.includes('TOTAL')
-        )
-
-        if(disasterRow) {
-            const values = years.map(y => ({
+            // 1. 提取碳储量
+            const forestRow = store.forestData.find(d => d.ISO3 === targetISO);
+            countryResult.carbon = years.map(y => ({
                 year: y,
-                value: +disasterRow[y] || 0,
-                type: 'Disasters'
-            }))
-            result.push({type: 'Disasters', values})
-        }
+                value: (forestRow && forestRow[y]) ? +forestRow[y] : 0
+            }));
 
-        // console.log('result: ', result)
-
-        return result
+            // 2. 提取灾难总数
+            const disasterRow = store.disasterData.find(d => 
+                d.ISO3 === targetISO && d.Indicator.includes('TOTAL')
+            );
+            if (disasterRow) {
+                countryResult.disasters = years.map(y => ({
+                    year: y,
+                    value: +disasterRow[y] || 0
+                }));
+            }
+            
+            return countryResult;
+        });
     })
 
     // console.log('11111111')
@@ -98,13 +88,22 @@
             .domain([1992, 2023])
             .range([0, width])
 
+            
+        // 获取所有选中数据中的 Carbon 最大/最小值
+        const allCarbonValues = data.flatMap(d => d.carbon.map(v => v.value));
         const yScaleCarbon = d3.scaleLinear()
-            .domain([d3.min(data[0].values, d => d.value) * 0.95, d3.max(data[0].values, d => d.value) * 1.05])
+            .domain([d3.min(allCarbonValues) * 0.95, d3.max(allCarbonValues) * 1.05])
             .range([height, 0]);
 
+        // 获取所有选中数据中的 Disaster 最大值
+        const allDisasterValues = data.flatMap(d => d.disasters ? d.disasters.map(v => v.value) : [0]);
         const yScaleDisaster = d3.scaleLinear()
-            .domain([0, d3.max(data[1]?.values || [], d => d.value) || 10])
+            .domain([0, d3.max(allDisasterValues) || 10])
             .range([height, 0]);
+
+        // 颜色比例尺，每个国家一个颜色
+        const colorScale = d3.scaleOrdinal(d3.schemeCategory10)
+            .domain(store.selectedCountries);
 
 
         g.selectAll(".axis").remove();
@@ -144,29 +143,27 @@
         // 绘制折线
         g.selectAll(".line").remove();
 
-        // 绘制碳储量线
-        g.append("path")
-            .datum(data[0].values)
-            .attr("class", "line carbon-line")
-            .attr("d", lineGenCarbon)
+        // 为每个国家绘制一个容器
+        const countryGroups = g.selectAll('.line-group')
+            .data(data)
+            .join('g')
+            .attr('class', 'line-group')
+
+        // 绘制 Carbon 线 (实线)
+        countryGroups.append("path")
+            .attr("d", d => lineGenCarbon(d.carbon))
             .attr("fill", "none")
-            .attr("stroke", "green")
+            .attr("stroke", d => colorScale(d.iso))
             .attr("stroke-width", 2);
 
-
-        // 灾难数量 Disasters
-        // 没有显示，这里的数据有问题
-        if (data[1]) {
-            g.append("path")
-            .datum(data[1].values)
-            .attr("class", "line disaster-line")
-            .attr("d", lineGenDisaster)
+        // 绘制 Disaster 线 (虚线，用于区分)
+        countryGroups.filter(d => d.disasters)
+            .append("path")
+            .attr("d", d => lineGenDisaster(d.disasters))
             .attr("fill", "none")
-            .attr("stroke", "red")
-            .attr("stroke-width", 2);
-        }else{
-            console.log('没有disaster')
-        }
+            .attr("stroke", d => colorScale(d.iso))
+            .attr("stroke-width", 2)
+            .attr("stroke-dasharray", "4,2");
 
         
         
