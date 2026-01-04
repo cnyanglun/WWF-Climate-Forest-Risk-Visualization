@@ -129,6 +129,9 @@
             .attr("transform", `translate(0,${height})`)
             .call(d3.axisBottom(xScale).ticks(5).tickFormat(d3.format("d")));
 
+
+        // ============================================ 绘制两种线
+
         if (showCarbon.value) {
             const allCarbonValues = data.flatMap(d => d.carbon.map(v => v.value));
             const yScaleCarbon = d3.scaleLinear()
@@ -179,6 +182,48 @@
                 .attr("stroke-dasharray", "4,2");
         }
 
+
+
+        // ============================================ Brushing Tool
+        const brush = d3.brushX()
+            .extent([[0, 0], [width, height]])
+            .on("brush", (event) => {
+                // 【优化 1】仅在 V3 内部提供即时反馈（可选）
+                // 如果你希望拖动时 V3 的线变色或者有个预览效果，写在这里
+            })
+            .on("end", (event) => {
+                // 【优化 2】只有用户松开鼠标，且确实有选区变化时才更新全局状态
+                if (!event.sourceEvent) return; // 忽略由程序触发的事件
+                
+                if (event.selection) {
+                    const [x0, x1] = event.selection.map(xScale.invert);
+                    const roundedRange = [Math.round(x0), Math.round(x1)];
+                    
+                    // 确保年份有效且发生了变化
+                    if (roundedRange[0] !== store.timeRange[0] || roundedRange[1] !== store.timeRange[1]) {
+                        // 只有年份跨度大于 0 才更新，防止点选（click）导致的错误
+                        if (roundedRange[1] > roundedRange[0]) {
+                            store.updateTimeRange(roundedRange);
+                        }
+                    }
+                } else {
+                    // 如果用户双击背景取消选区，恢复默认范围
+                    store.updateTimeRange([1992, 2023]);
+                }
+            });
+
+        // 创建或选择 brush 容器
+        const brushG = g.selectAll(".brush-container")
+            .data([null])
+            .join("g")
+            .attr("class", "brush-container")
+            .call(brush);
+
+        // 默认设置初始位置（可选：根据 store.timeRange 反向绘制矩形）
+        if (store.timeRange) {
+            brushG.call(brush.move, [xScale(store.timeRange[0]), xScale(store.timeRange[1])]);
+        }
+
         
         
     }
@@ -226,4 +271,16 @@
 }
 .chart-area { flex: 1; position: relative; }
 h3 { margin: 0; font-size: 1rem; }
+
+
+:deep(.selection) {
+    fill: #3498db;
+    fill-opacity: 0.1;
+    stroke: #2980b9;
+    stroke-dasharray: 4;
+}
+
+:deep(.handle) {
+    fill: #2980b9;
+}
 </style>
