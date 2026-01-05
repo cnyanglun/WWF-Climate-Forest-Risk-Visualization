@@ -61,54 +61,57 @@ onMounted(() => {
 
 
 <style>
-  /* 核心：强制全屏且无滚动条 */
+  /* --- Core Layout: Enforce full-screen and disable scrolling (A5 Compliance) --- */
   html, body, #app {
     margin: 0;
     padding: 0;
     height: 100vh;
     width: 100vw;
-    overflow: hidden; /* A5 准则：禁止滚动 */
+    overflow: hidden; /* Guideline: Prohibit scrolling for Dashboard-style applications */
     font-family: sans-serif;
   }
 
+  /* --- Main Container: Flexbox structure for header and content separation --- */
   .dashboard-container {
     display: flex;
     flex-direction: column;
     height: 100%;
-    padding: 15px; /* 稍微增加内边距更美观 */
+    padding: 15px; /* Added padding for improved aesthetic balance */
     box-sizing: border-box;
     background-color: #f5f5f5;
   }
 
+  /* --- Header: Fixed height for consistent vertical alignment --- */
   .dashboard-header {
-    height: 50px; /* 固定标题高度 */
+    height: 50px; /* Fixed height for title section */
     display: flex;
     align-items: center;
     justify-content: center;
   }
 
-  /* 4视图均等布局设计 (2x2 田字格) */
+  /* --- Dashboard Grid: 2x2 Quadrant Layout (View Management) --- */
   .dashboard-content {
     flex: 1;
     display: grid;
-    /* 改为 1fr 1fr 实现等分列宽 */
+    /* Equal distribution for 2 columns */
     grid-template-columns: 1fr 1fr; 
-    /* 改为 1fr 1fr 实现等分行高 */
+    /* Equal distribution for 2 rows */
     grid-template-rows: 1fr 1fr; 
-    grid-gap: 20px; /* 增加间距增加呼吸感 */
+    grid-gap: 20px; /* Increased spacing to improve visual breathing room */
     overflow: hidden;
   }
 
-  /* 移除所有的 span 跨度，让它们各自占据一个格子 */
+  /* --- View Containers: Card-style design with shadow effects --- */
   .view-v1, .view-v2, .view-v3, .view-v4 {
     background: white;
     border-radius: 8px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.08); /* 稍微增强阴影让卡片感更强 */
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08); /* Enhanced shadow for depth perception */
     display: flex;
     flex-direction: column;
-    overflow: hidden; /* 确保图表不溢出容器 */
+    overflow: hidden; /* Ensure D3 charts do not overflow container boundaries */
   }
 
+  /* --- Feedback: Full-screen loading state overlay --- */
   .loading-overlay {
     display: flex;
     justify-content: center;
@@ -117,9 +120,10 @@ onMounted(() => {
     font-size: 2rem;
   }
 
+  /* --- Interactivity: Fixed-position global tooltip (Contextual Details) --- */
   .global-tooltip {
     position: fixed;
-    pointer-events: none; /* 必须 */
+    pointer-events: none; /* Crucial: Prevent tooltip from interfering with mouse events */
     background: rgba(255, 255, 255, 0.95);
     padding: 10px;
     border: 1px solid #ddd;

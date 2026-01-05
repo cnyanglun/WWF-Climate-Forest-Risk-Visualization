@@ -86,13 +86,14 @@ export const useStore = defineStore({
         this.selectedCountries.splice(index, 1);
       } else {
         // 限制最多选中 6 个国家，防止图表线条乱如麻
-        if (this.selectedCountries.length < 6) {
-          this.selectedCountries.push(iso3);
-        } else {
-          // 达到上限时，去掉第一个，加入最新的
-          this.selectedCountries.shift();
-          this.selectedCountries.push(iso3);
-        }
+        // if (this.selectedCountries.length < 6) {
+        //   this.selectedCountries.push(iso3);
+        // } else {
+        //   // 达到上限时，去掉第一个，加入最新的
+        //   this.selectedCountries.shift();
+        //   this.selectedCountries.push(iso3);
+        // }
+        this.selectedCountries.push(iso3);
       }
     },
 

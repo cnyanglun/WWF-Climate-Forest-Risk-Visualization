@@ -1,7 +1,7 @@
 <template>
   <div class="view-container">
     <div class="header-row">
-      <h3>V1: Global Risk Map</h3>
+      <h3>V1: Global Carbon Sink Risk</h3>
       <div class="legend-container" ref="legendRef"></div>
     </div>
 
@@ -18,7 +18,8 @@
   const chartRef = ref(null)
   const legendRef = ref(null)
 
-  // 1. Prepare Data, 计算当前时间范围内的碳储量变化
+  // ============================================ Process Data ============================================
+  // Calculate the change in carbon storage within the current time range
   const countryMetrics = computed(() => {
     const [start, end] = store.timeRange
     const metrics = new Map()
@@ -34,7 +35,7 @@
     return metrics
   })
 
-  // 2. Draw
+  // ============================================ Process Data ============================================
   let svg, g, projection, path
 
   const initMap = () => {
@@ -53,7 +54,7 @@
 
     g = svg.append('g')
 
-    // 使用自然地球投影
+    // Use the natural Earth projection
     projection = d3.geoNaturalEarth1()
       .fitSize([width, height], store.geoData);
     
@@ -71,7 +72,7 @@
     const minValue = d3.min(values);
     const maxValue = d3.max(values);
 
-    // 定义颜色比例尺，红色（减少/风险） -> 黄色 -> 绿色（增加）
+    // Define the color scale, red (decrease/risk) -> yellow -> green (increase)
     const colorScale = d3.scaleDiverging()
       .domain([minValue, 0, maxValue])
       .interpolator(d3.interpolateRdYlGn)
@@ -83,7 +84,7 @@
       .attr('class', 'country')
       .attr('d', path)
       .attr('fill', d => {
-        // 这里的键名必须与你 Console 打印的一致
+        // The key names here must be consistent with those printed in your Console
         const iso3 = d.properties['ISO3166-1-Alpha-3']; 
         const val = metrics.get(iso3);
         return val !== undefined ? colorScale(val) : '#eee';
@@ -103,11 +104,11 @@
       })
 
       .on('mouseover', (event, d) => {
-        // 1. 获取正确的 ISO3 码
+        // 1. Country ID, IOS
         const iso3 = d.properties['ISO3166-1-Alpha-3'];
-        // 2. 获取正确的国家名称 (根据你之前的 Log，是小写的 name)
+        // 2. Country name
         const countryName = d.properties.name || d.properties.NAME || iso3;
-        // 3. 从计算属性中获取对应的碳储量变化数值
+        // 3. Obtain the corresponding carbon storage change value from the calculated attribute
         const val = metrics.get(iso3);
       
         const content = `
@@ -121,7 +122,7 @@
         store.showTooltip(event.pageX + 15, event.pageY - 15, content)
       })
       .on('mousemove', () => {
-        // 实时更新位置，保持内容不变
+        // Update the location in real time and keep the content unchanged
         store.showTooltip(event.pageX + 15, event.pageY - 15, store.tooltip.content);
       })
       .on('mouseout', () => {
@@ -132,7 +133,7 @@
   }
 
 
-  // 绘制简单的颜色图例
+  // Draw simple color legends
   const drawLegend = (colorScale) => {
     const legendWidth = 200;
     const legendHeight = 10;
@@ -157,13 +158,12 @@
 
 
   onMounted(() => {
-    // 基础 D3 初始化逻辑将在这里编写
+    // Active when add into App.vue
     console.log("Map component mounted");
     if(!store.isLoading && store.geoData) initMap();
   });
 
-  // 监听 store 变化进行重绘
-  // 1. 只有当时间范围或基础数据变化时，才全量重绘地图颜色（耗时操作）
+  // Only watch time and basic data change
   watch([
     () => store.timeRange, () => store.isLoading], 
     () => {
@@ -171,15 +171,14 @@
     }, 
     { deep: true });
 
-  // 2. 当仅仅是选中的国家变化时，只更新描边
+  // When only the selected country changes, only update the stroke
   watch(() => store.selectedCountries, (newSelected) => {
     if (!g) return;
 
-    // 获取所有国家路径的选择集
+    // Get all countries' path 
     const countries = g.selectAll('.country');
 
-    // 【步骤 1】 立即将选中的国家置顶 (raise)，这样边框才不会被邻国遮挡
-    // 我们先过滤出选中的元素，然后调用 raise
+    // Place the selected country layer at the top to prevent its bold border from being blocked by adjacent countries
     countries
       .filter(d => {
         const iso3 = d.properties['ISO3166-1-Alpha-3'];
@@ -187,7 +186,7 @@
       })
       .raise();
 
-    // 【步骤 2】 执行平滑的描边动画
+    // Highlight feedback by changing the border color and width through smooth transition animations
     countries
       .transition()
       .duration(300)
@@ -205,54 +204,49 @@
 </script>
 
 <style scoped>
+  /* --- Layout & Container Scaling --- */
   .view-container { 
-  width: 100%; 
-  height: 100%; 
-  display: flex; 
-  flex-direction: column; 
-  padding: 10px;
-  box-sizing: border-box;
-}
+    width: 100%; 
+    height: 100%; 
+    display: flex; 
+    flex-direction: column; 
+    padding: 10px;
+    box-sizing: border-box;
+  }
 
-.header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 5px;
-}
+  .header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+  }
 
-.chart-area { 
-  flex: 1; 
-  position: relative; 
-  cursor: crosshair;
-  background: #fff;
-}
+  /* --- D3 Drawing Area --- */
+  .chart-area { 
+    flex: 1; 
+    position: relative; 
+    cursor: crosshair;
+    background: #fff;
+  }
 
-.country {
-  transition: opacity 0.2s;
-}
+  /* --- Map Path & Interaction States --- */
+  .country {
+    transition: fill 0.2s, opacity 0.2s;
+  }
 
-.country:hover {
-  opacity: 0.8;
-}
+  .country:hover {
+    opacity: 0.8;
+    filter: brightness(1.1);
+    cursor: pointer;
+  }
 
-.legend-container {
-  font-size: 10px;
-}
+  /* --- Components: Legend & Selections --- */
+  .legend-container {
+    font-size: 10px;
+  }
 
-.country {
-  transition: fill 0.2s, opacity 0.2s; /* 让颜色填充更丝滑 */
-}
-
-/* 鼠标悬停时的即时反馈 */
-.country:hover {
-  opacity: 0.8;
-  filter: brightness(1.1);
-  cursor: pointer;
-}
-
-/* 只有选中的国家路径会应用这个 CSS 效果（可选） */
-.country-selected {
-  filter: drop-shadow(0px 0px 2px rgba(0,0,0,0.5));
-}
+  /* Optional: visual effect for selected country paths */
+  .country-selected {
+    filter: drop-shadow(0px 0px 2px rgba(0,0,0,0.5));
+  }
 </style>

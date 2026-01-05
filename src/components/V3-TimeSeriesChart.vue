@@ -1,7 +1,7 @@
 <template>
     <div class="view-container">
         <div class="header-row">
-            <h3>V3: 趋势关联分析 (时间序列)</h3>
+            <h3>V3: Time Series Comparison</h3>
             <div class="controls">
                 <label class="checkbox-label">
                     <input type="checkbox" v-model="showCarbon"> 
@@ -26,14 +26,13 @@
     const store = useStore()
     const chartRef = ref(null)
 
-    // 新增显隐控制状态
     const showCarbon = ref(true);
     const showDisaster = ref(true);
 
     // ============================================ Process Data ============================================
-    // 将宽格式转换为折线图所需要的长格式
+    // Convert the wide format to the long format
     const lineData = computed(() => {
-        // 守卫：如果数据还没准备好，直接返回空，避免报错
+        // Guard Avoid data is null
         if (!store.forestData.length || !store.disasterData.length) return [];
 
         const years = d3.range(1992, 2023)
@@ -42,14 +41,14 @@
             const targetISO = iso.trim();
             const countryResult = { iso: targetISO, carbon: null, disasters: null };
 
-            // 1. 提取碳储量
+            // 1. Get Carbon Stock
             const forestRow = store.forestData.find(d => d.ISO3 === targetISO);
             countryResult.carbon = years.map(y => ({
                 year: y,
                 value: (forestRow && forestRow[y]) ? +forestRow[y] : 0
             }));
 
-            // 2. 提取灾难总数
+            // 2. Get Disaster Count
             const disasterRow = store.disasterData.find(d => 
                 d.ISO3 === targetISO && d.Indicator.includes('TOTAL')
             );
@@ -68,7 +67,7 @@
     // console.log(lineData.value)
 
 
-    // ============================================ Process Data ============================================
+    // ============================================ Draw Chart ============================================
     let svg, g
     const margin = {top: 20, right: 50, bottom: 30, left: 50}
 
@@ -103,23 +102,20 @@
             .range([0, width])
 
             
-        // 获取所有选中数据中的 Carbon 最大/最小值
+        // Get the max/min value from selected Carbon data
         const allCarbonValues = data.flatMap(d => d.carbon.map(v => v.value));
         const yScaleCarbon = d3.scaleLinear()
             .domain([d3.min(allCarbonValues) * 0.95, d3.max(allCarbonValues) * 1.05])
             .range([height, 0]);
 
-        // 获取所有选中数据中的 Disaster 最大值
+        // Get the max value of disaster from selected data
         const allDisasterValues = data.flatMap(d => d.disasters ? d.disasters.map(v => v.value) : [0]);
         const yScaleDisaster = d3.scaleLinear()
             .domain([0, d3.max(allDisasterValues) || 10])
             .range([height, 0]);
 
-        // 颜色比例尺，每个国家一个颜色
-        const colorScale = d3.scaleOrdinal(d3.schemeCategory10)
-            .domain(store.selectedCountries);
 
-
+        // Clear
         g.selectAll(".line-carbon").remove();
         g.selectAll(".line-disaster").remove();
         g.selectAll(".axis").remove();
@@ -130,7 +126,7 @@
             .call(d3.axisBottom(xScale).ticks(5).tickFormat(d3.format("d")));
 
 
-        // ============================================ 绘制两种线
+        // ============================================ Draw two kinds of lines ============================================
 
         if (showCarbon.value) {
             const allCarbonValues = data.flatMap(d => d.carbon.map(v => v.value));
@@ -145,7 +141,7 @@
 
             const lineGenCarbon = d3.line().x(d => xScale(d.year)).y(d => yScaleCarbon(d.value));
 
-            // 绘制 Carbon 线
+            // Draw Carbon Line - solid
             g.selectAll(".line-carbon")
                 .data(data)
                 .join("path")
@@ -170,7 +166,7 @@
 
             const lineGenDisaster = d3.line().x(d => xScale(d.year)).y(d => yScaleDisaster(d.value));
 
-            // 绘制 Disaster 线 (虚线)
+            // Draw the Disaster line (dotted line)
             g.selectAll(".line-disaster")
                 .data(data.filter(d => d.disasters))
                 .join("path")
@@ -183,8 +179,10 @@
         }
 
 
-        // ============================================ Tooltip 交互逻辑
-        // 2. 交互组件：垂直指示线 (始终跟随年份，但设为 pointer-events: none)
+        // ============================================ Brush Tool ============================================
+
+        // Interactive component: Vertical indicator line 
+        // (always following the year, but set to pointer-events: none)
         const focusLine = g.selectAll(".focus-line").data([null]).join("line")
             .attr("class", "focus-line")
             .attr("y1", 0)
@@ -195,7 +193,7 @@
             .style("pointer-events", "none")
             .style("display", "none");
 
-        // 3. 交互组件：Brush 初始化
+        // Initialize Brush
         const brush = d3.brushX()
             .extent([[0, 0], [width, height]])
             .on("end", (event) => {
@@ -212,7 +210,7 @@
             .attr("class", "brush-container")
             .call(brush);
 
-        // 4. 【核心重构】在 Brush 覆盖层上实现“邻近探测” Tooltip
+        // Implement the "Proximity Detection" Tooltip on the Brush overlay
         brushG.select(".overlay")
             .on("mouseover", () => focusLine.style("display", null))
             .on("mouseout", () => {
@@ -224,15 +222,15 @@
                 const year = Math.round(xScale.invert(mX));
                 if (year < 1992 || year > 2022) return;
 
-                // 指示线永远吸附在年份刻度上
+                // The indicator line is always attached to the year scale
                 focusLine.attr("x1", xScale(year)).attr("x2", xScale(year));
 
-                // --- 寻找距离鼠标 Y 轴最近的线条 ---
+                // Find the line that is closest to the Y-axis of the mouse
                 let closestLine = null;
-                let minDistance = 25; // 触发阈值：25px 范围内才显示
+                let minDistance = 25; // Trigger threshold: Only displayed within a range of 25px
 
                 data.forEach(country => {
-                    // 探测碳储量线条 (左轴)
+                    // Detect proximity to Carbon Stock lines (mapped to the Left Y-Axis)
                     if (showCarbon.value) {
                         const d = country.carbon.find(p => p.year === year);
                         if (d) {
@@ -250,7 +248,7 @@
                         }
                     }
 
-                    // 探测灾害线条 (右轴)
+                    // Detect proximity to Disaster lines (mapped to the Right Y-Axis)
                     if (showDisaster.value && country.disasters) {
                         const d = country.disasters.find(p => p.year === year);
                         if (d) {
@@ -269,7 +267,7 @@
                     }
                 });
 
-                // --- 根据探测结果更新全局 Tooltip ---
+                // Update Tooltip
                 if (closestLine) {
                     const content = `
                         <div style="font-weight:bold; color:${closestLine.color}; border-bottom:1px solid #eee; padding-bottom:3px; margin-bottom:5px;">
@@ -282,12 +280,11 @@
                     `;
                     store.showTooltip(event.pageX + 15, event.pageY - 15, content);
                 } else {
-                    // 如果鼠标离任何线条都很远，则隐藏
                     store.hideTooltip();
                 }
             });
 
-        // 5. 【同步刷选框位置】解决“重绘后消失”的问题
+        // Solve the problem of "disappearing after redrawing"
         if (store.timeRange) {
             const xStart = xScale(store.timeRange[0]);
             const xEnd = xScale(store.timeRange[1]);
@@ -305,14 +302,14 @@
     });
 
 
-    // 监听选中国家及数据变化
+    // Monitor the selected countries and data changes
     watch(
         [
             () => store.selectedCountries, 
             () => store.isLoading, 
             () => store.timeRange,
-            showCarbon, // 新增监听
-            showDisaster // 新增监听
+            showCarbon, 
+            showDisaster 
         ], 
         () => {
             if (!store.isLoading) {

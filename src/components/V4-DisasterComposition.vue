@@ -1,7 +1,7 @@
 <template>
     <div class="view-container">
         <div class="header-row">
-            <h3>V4: Disaster Type Distribution </h3>
+            <h3>V4: Disaster Type Distribution</h3>
         </div>
         <div ref="chartRef" class="chart-area"></div>
     </div>
@@ -60,21 +60,22 @@
         const [startYear, endYear] = store.timeRange
         const years = d3.range(startYear, endYear+1).map(String)
 
-        // 灾难类型
+        // Disaster Type
         const disasterTypes = ["Drought", "Extreme temperature", "Flood", "Landslide", "Storm", "Wildfire"];
 
-        // 为选中的每个国家构建一条记录
+        // Each Country has a record
         const result = store.selectedCountries.map(iso3 => {
             const entry = {iso: iso3}
 
             disasterTypes.forEach(type => {
-            // 在数据集中寻找对应的行：匹配国家 ISO3 且指标包含该灾害类型
+            // Search for the corresponding row in the dataset: 
+            // matching the ISO3 of the country and the indicator containing this type of disaster
             const row = store.disasterData.find(d => 
                 d.ISO3.trim() === iso3 && 
                 d.Indicator.includes(`Number of Disasters: ${type}`)
             );
             
-            // 计算所选时间段内的总次数
+            // Total disaster count
             let sum = 0;
             if (row) {
                 years.forEach(y => { sum += (+row[y] || 0); });
@@ -121,7 +122,7 @@
         const width = chartRef.value.clientWidth - margin.left - margin.right;
         const height = chartRef.value.clientHeight - margin.top - margin.bottom;
 
-        // 准备堆叠数据
+        // Prepare to stack data
         const stack = d3.stack().keys(keys)
         const layers = stack(data)
 
@@ -135,7 +136,7 @@
             .domain([0, d3.max(layers, layer => d3.max(layer, d => d[1])) || 10])
             .range([height, 0])
 
-        // 使用D3调色板区分灾害类型
+        // Each disaster has different color
         const colorScale = d3.scaleOrdinal()
             .domain(keys)
             .range(d3.schemeTableau10)
@@ -151,7 +152,7 @@
             .attr('class', 'axis y-axis')
             .call(d3.axisLeft(yScale).ticks(5))
 
-        // 绘制堆叠条
+        // Draw stack bars
         g.selectAll(".layer").remove();
 
         const layerGroups = g.selectAll('.layer')
@@ -167,11 +168,10 @@
             .attr('y', d => yScale(d[1]))
             .attr('height', d => yScale(d[0]) - yScale(d[1]))
             .attr('width', xScale.bandwidth())
-            .attr('stroke', '#fff') // 增加白边，让堆叠更有层次感
+            .attr('stroke', '#fff') // Boarder is white
             .attr('stroke-width', 0.5)
             .style('cursor', 'pointer')
             .on('mouseover', (event, d) => {
-                // 关键点：通过父节点获取灾害类型 (key)
                 const disasterType = d3.select(event.currentTarget.parentNode).datum().key;
                 const countryName = d.data.iso;
                 const value = d[1] - d[0];
@@ -195,15 +195,15 @@
             });
 
 
-        // ================== 添加图例 (Legend) ==================
-        const legend = g.selectAll(".legend").remove(); // 先清空旧图例
+        // ================== Add Legend (Legend) ==================
+        // The colors of different disasters are displayed at the top of chart for easy comparison
+        const legend = g.selectAll(".legend").remove(); // Clear old legend
         
-        // 创建一个新的图例容器组
+        // Create a new legend container group
         const legendGroup = g.append("g")
             .attr("class", "legend")
-            .attr("transform", `translate(0, -15)`); // 放在绘图区上方
+            .attr("transform", `translate(0, -15)`); // Place it above the drawing area
 
-        // 计算每个图例项的间距（横向排列）
         const legendItemWidth = width / keys.length;
 
         const legendItems = legendGroup.selectAll(".legend-item")
@@ -212,13 +212,13 @@
             .attr("class", "legend-item")
             .attr("transform", (d, i) => `translate(${i * legendItemWidth}, 0)`);
 
-        // 绘制彩色小方块
+        // Draw color cubes
         legendItems.append("rect")
             .attr("width", 10)
             .attr("height", 10)
             .attr("fill", d => colorScale(d));
 
-        // 绘制文字描述
+        // Add text beside it
         legendItems.append("text")
             .attr("x", 15)
             .attr("y", 10)

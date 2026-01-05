@@ -1,6 +1,6 @@
 <template>
     <div class="view-container">
-        <h3>V2: Risk Analysis (Disasters vs. Carbon Change)</h3>
+        <h3>V2: Compound Risk: Disasters vs. Carbon Loss</h3>
         <div ref="chartRef" class="chart-area"></div>
         <div class="tooltip" ref="tooltipRef"></div>
     </div>
@@ -93,7 +93,7 @@
         g = svg.append('g')
             .attr('transform', `translate(${margin.left},${margin.top})`)
 
-        // 绘制比例尺
+        // Set Scale
         xScale = d3.scaleLinear()
         yScale = d3.scaleLinear()
 
@@ -106,7 +106,7 @@
         const data = scatterData.value
         if(!data.length) return
 
-        // 计算实际绘图区的宽高
+        // Calculate width and height
         const innerWidth = chartRef.value.clientWidth - margin.left - margin.right
         const innerHeight = chartRef.value.clientHeight - margin.top - margin.bottom
 
@@ -124,37 +124,37 @@
             const { selection } = event;
             
             if (selection) {
-                // 1. 获取框选的像素范围
+                // 1. Get the pixel range selected by the box
                 const [[x0, y0], [x1, y1]] = selection;
 
-                // 2. 寻找哪些点在范围内
+                // 2. Look for which points are within the range
                 const selected = data.filter(d => {
                 const cx = xScale(d.deltaCarbon);
                 const cy = yScale(d.totalDisasters);
                 return x0 <= cx && cx <= x1 && y0 <= cy && cy <= y1;
                 }).map(d => d.iso3);
 
-                // 3. 只有在 "end" 阶段才更新 Store，避免滑动时太卡
+                // 3. Only update the Store at the "end" stage to avoid it being too laggy when swiping
                 if (event.type === "end") {
                 store.setSelectedCountries(selected);
                 }
                 
-                // 4. 视觉反馈：即时高亮当前选中的点
+                // 4. Highlight selected points
                 g.selectAll(".dot")
                 .attr("stroke", d => selected.includes(d.iso3) ? "#000" : "#fff")
                 .attr("stroke-width", d => selected.includes(d.iso3) ? 2 : 1)
                 .attr("opacity", d => selected.includes(d.iso3) ? 1 : 0.3);
                 
             } else {
-                // 如果取消框选（点击空白处）
+                // If the box is unselected (click on the blank area)
                 if (event.type === "end") {
-                store.setSelectedCountries([]); // 清空
+                    store.setSelectedCountries([]); // Clear
                 }
                 g.selectAll(".dot").attr("opacity", 0.6).attr("stroke", "#fff");
             }
         }
 
-        // 更新比例尺
+        // Update Scale
         xScale.domain(d3.extent(data, d => d.deltaCarbon)).range([0, innerWidth]).nice()
         yScale.domain([0, d3.max(data, d => d.totalDisasters)]).range([innerHeight, 0]).nice()
 
@@ -170,7 +170,7 @@
             .attr('fill', 'black')
             .attr('text-anchor', 'end')
             .style('font-weight', 'bold')
-            .text('Δ 碳储量 (百万吨)')
+            .text('Δ Carbon Stock (MT)')
 
 
 
@@ -185,12 +185,12 @@
             .attr("fill", "black")
             .attr("text-anchor", "start")
             .style("font-weight", "bold")
-            .text("灾害总频率");
+            .text("Disaster Count");
 
 
         // Draw Scatter
         g.selectAll('.dot')
-            .data(data, d => d.iso3)        // 使用ISO3作为唯一标识符（key）
+            .data(data, d => d.iso3)        // ISO3 is country id
             .join('circle')
             .attr('class', 'dot')
             .attr('cx', d => xScale(d.deltaCarbon))
@@ -203,8 +203,8 @@
             .on('mouseover', (event, d) => {
                 const content = `
                         <div style="font-weight:bold">${d.name} (${d.iso3})</div>
-                        <div style="color:#e74c3c">灾害总数: ${d.totalDisasters}</div>
-                        <div style="color:#27ae60">碳储量变化: ${d.deltaCarbon.toFixed(2)} MT</div>
+                        <div style="color:#e74c3c">Disaster Count: ${d.totalDisasters}</div>
+                        <div style="color:#27ae60">Carbon Stock Change: ${d.deltaCarbon.toFixed(2)} MT</div>
                 `;
                 store.showTooltip(event.pageX + 10, event.pageY - 10, content)
             })
@@ -228,15 +228,13 @@
     })
 
     // ============================================
-    // 监控的数据
     const watchData = [
         () => store.forestData,
         () => store.disasterData,
         () => store.timeRange
     ]
-    // 数据变化后的操作
     const watchProcess = () => {
-            // 如果已经初始化了，那么更新
+            // If it has already been initialized, then update
             if(svg) updateChart()
             else initChart()
     }
