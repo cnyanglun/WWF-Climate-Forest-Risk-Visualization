@@ -6,8 +6,6 @@
     </div>
 
     <div ref="chartRef" class="chart-area"></div>
-    <div class="tooltip" ref="tooltipRef"></div>
-
   </div>
 </template>
 
@@ -17,8 +15,7 @@
   import * as d3 from 'd3';
 
   const store = useStore();
-  const chartRef = ref(null);
-  const tooltipRef = ref(null)
+  const chartRef = ref(null)
   const legendRef = ref(null)
 
   // 1. Prepare Data, 计算当前时间范围内的碳储量变化
@@ -113,26 +110,22 @@
         // 3. 从计算属性中获取对应的碳储量变化数值
         const val = metrics.get(iso3);
       
-        d3.select(tooltipRef.value)
-        .style("opacity", 1)
-        .html(`
+        const content = `
           <div style="font-weight: bold; border-bottom: 1px solid #ccc; margin-bottom: 5px;">
             ${countryName}
           </div>
           <div style="color: ${val < 0 ? '#e74c3c' : '#27ae60'}">
             Δ Carbon: ${val !== undefined ? val.toFixed(2) + ' MT' : 'No Data'}
           </div>
-        `);
+        `
+        store.showTooltip(event.pageX + 15, event.pageY - 15, content)
       })
       .on('mousemove', () => {
-        // 让弹窗跟随鼠标移动，并增加偏移量防止遮挡光标
-        d3.select(tooltipRef.value)
-        .style("left", (event.pageX + 15) + "px")
-        .style("top", (event.pageY - 15) + "px");
+        // 实时更新位置，保持内容不变
+        store.showTooltip(event.pageX + 15, event.pageY - 15, store.tooltip.content);
       })
       .on('mouseout', () => {
-        // Hide Tooltip
-        d3.select(tooltipRef.value).style('opacity', 0);
+        store.hideTooltip()
       })
 
       drawLegend(colorScale)
@@ -241,19 +234,6 @@
 
 .country:hover {
   opacity: 0.8;
-}
-
-.tooltip {
-  position: absolute;
-  background: rgba(255, 255, 255, 0.95);
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  pointer-events: none;
-  opacity: 0;
-  font-size: 12px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-  z-index: 1000;
 }
 
 .legend-container {
