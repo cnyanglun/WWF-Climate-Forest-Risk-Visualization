@@ -11,9 +11,9 @@ export const useStore = defineStore({
     geoData: null,              // Word Map Json
 
     // Global Filter
-    selectedCountries: ['USA', 'BRA', 'RUS'],      // 用户点击地图或散点选中的国家
+    selectedCountries: ['USA', 'BRA', 'RUS'],      // Default Countries
     // selectedCountries: [], 
-    timeRange: [1992, 2023],     // 这里的日期可能要写死，规定只展示某个时间段
+    timeRange: [1992, 2023],     // Default time Ranges
 
     isLoading: true,
 
@@ -62,7 +62,7 @@ export const useStore = defineStore({
         console.error("Data loading failed:", error);
       }
     },
-    // 设置选择表，直接覆盖旧的选择列表，V2会用到
+    // Set the selection table to directly overwrite the old selection list
     setSelectedCountries(iso3List) {
       this.selectedCountries = iso3List;
     },
@@ -78,18 +78,18 @@ export const useStore = defineStore({
       this.tooltip.show = false
     },
 
-    // 切换国家选中状况（Toggle模式）
+    // Switch the country selection status (Toggle mode)
     toggleCountry(iso3) {
       if (!iso3) return;
       const index = this.selectedCountries.indexOf(iso3);
       if (index > -1) {
         this.selectedCountries.splice(index, 1);
       } else {
-        // 限制最多选中 6 个国家，防止图表线条乱如麻
+        // At most 6 countries be selected
         // if (this.selectedCountries.length < 6) {
         //   this.selectedCountries.push(iso3);
         // } else {
-        //   // 达到上限时，去掉第一个，加入最新的
+        //   // When the upper limit is reached, remove the first one and add the latest one
         //   this.selectedCountries.shift();
         //   this.selectedCountries.push(iso3);
         // }
@@ -97,21 +97,21 @@ export const useStore = defineStore({
       }
     },
 
-    // 更新时间范围，使用V3中的Brush
+    // Update the time range using Brush in V3
     updateTimeRange(newRange) {
       this.timeRange = newRange
     }
   },
 
   getters: {
-    // 获取当前时间范围内，各国的平均森林碳储量
+    // Obtain the average forest carbon storage of various countries within the current time range
     aggregatedDisasters(state) {
       const yearColumns = d3.range(state.timeRange[0], state.timeRange[1] + 1).map(String);
       
       return d3.rollup(
         state.disasterData.filter(d => d.Indicator.includes("TOTAL")),
         v => {
-          // 对选中年份区间求和
+          // Sum up the selected year interval
           let sum = 0;
           yearColumns.forEach(y => { sum += (v[0][y] || 0); });
           return sum;
