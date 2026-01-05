@@ -11,14 +11,23 @@ export const useStore = defineStore({
     geoData: null,              // Word Map Json
 
     // Global Filter
-    // selectedCountries: ['BLR', 'ALB', 'BTN'],      // 用户点击地图或散点选中的国家
-    selectedCountries: [], 
+    selectedCountries: ['USA', 'BRA', 'RUS'],      // 用户点击地图或散点选中的国家
+    // selectedCountries: [], 
     timeRange: [1992, 2023],     // 这里的日期可能要写死，规定只展示某个时间段
 
-    isLoading: true
+    isLoading: true,
+
+    // Common tooltip State
+    tooltip: {
+      show: false,
+      x: 0,
+      y: 0,
+      content: ''
+    }
   }),
 
   actions: {
+    // 最重要的加载数据
     async loadData() {
       this.isLoading = true
 
@@ -53,6 +62,22 @@ export const useStore = defineStore({
         console.error("Data loading failed:", error);
       }
     },
+    // 设置选择表，直接覆盖旧的选择列表，V2会用到
+    setSelectedCountries(iso3List) {
+      this.selectedCountries = iso3List;
+    },
+
+    // Operations of tooltip
+    showTooltip(x, y, content){
+      this.tooltip.show = true
+      this.tooltip.x = x
+      this.tooltip.y = y
+      this.tooltip.content = content
+    },
+    hideTooltip(){
+      this.tooltip.show = false
+    },
+
     // 切换国家选中状况（Toggle模式）
     toggleCountry(iso3) {
       if (!iso3) return;

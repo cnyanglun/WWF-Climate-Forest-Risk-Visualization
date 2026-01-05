@@ -106,21 +106,33 @@
       })
 
       .on('mouseover', (event, d) => {
-        const iso3 = d.id || d.properties.ISO_A3;
+        // 1. 获取正确的 ISO3 码
+        const iso3 = d.properties['ISO3166-1-Alpha-3'];
+        // 2. 获取正确的国家名称 (根据你之前的 Log，是小写的 name)
+        const countryName = d.properties.name || d.properties.NAME || iso3;
+        // 3. 从计算属性中获取对应的碳储量变化数值
         const val = metrics.get(iso3);
-        const name = d.properties.NAME || iso3;
       
         d3.select(tooltipRef.value)
         .style("opacity", 1)
         .html(`
-          <strong>${name}</strong><br/>
-          Δ Carbon: ${val ? val.toFixed(2) : 'No Data'} MT
-        `)
-        .style("left", (event.pageX + 10) + "px")
-        .style("top", (event.pageY - 20) + "px");
+          <div style="font-weight: bold; border-bottom: 1px solid #ccc; margin-bottom: 5px;">
+            ${countryName}
+          </div>
+          <div style="color: ${val < 0 ? '#e74c3c' : '#27ae60'}">
+            Δ Carbon: ${val !== undefined ? val.toFixed(2) + ' MT' : 'No Data'}
+          </div>
+        `);
+      })
+      .on('mousemove', () => {
+        // 让弹窗跟随鼠标移动，并增加偏移量防止遮挡光标
+        d3.select(tooltipRef.value)
+        .style("left", (event.pageX + 15) + "px")
+        .style("top", (event.pageY - 15) + "px");
       })
       .on('mouseout', () => {
-        d3.select(tooltipRef.value).style('opacity', 0)
+        // Hide Tooltip
+        d3.select(tooltipRef.value).style('opacity', 0);
       })
 
       drawLegend(colorScale)

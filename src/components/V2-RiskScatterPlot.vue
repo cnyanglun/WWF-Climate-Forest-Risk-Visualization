@@ -110,6 +110,50 @@
         const innerWidth = chartRef.value.clientWidth - margin.left - margin.right
         const innerHeight = chartRef.value.clientHeight - margin.top - margin.bottom
 
+        // ============================================ Brush tool
+        const brush = d3.brush()
+            .extent([[0,0], [innerWidth, innerHeight]])
+            .on("start brush end", brushed);
+        
+        // Create Brush Container
+        const brushG = g.selectAll('.brush').data([null]).join('g')
+            .attr('class', 'brush')
+            .call(brush)
+
+        function brushed(event) {
+            const { selection } = event;
+            
+            if (selection) {
+                // 1. 获取框选的像素范围
+                const [[x0, y0], [x1, y1]] = selection;
+
+                // 2. 寻找哪些点在范围内
+                const selected = data.filter(d => {
+                const cx = xScale(d.deltaCarbon);
+                const cy = yScale(d.totalDisasters);
+                return x0 <= cx && cx <= x1 && y0 <= cy && cy <= y1;
+                }).map(d => d.iso3);
+
+                // 3. 只有在 "end" 阶段才更新 Store，避免滑动时太卡
+                if (event.type === "end") {
+                store.setSelectedCountries(selected);
+                }
+                
+                // 4. 视觉反馈：即时高亮当前选中的点
+                g.selectAll(".dot")
+                .attr("stroke", d => selected.includes(d.iso3) ? "#000" : "#fff")
+                .attr("stroke-width", d => selected.includes(d.iso3) ? 2 : 1)
+                .attr("opacity", d => selected.includes(d.iso3) ? 1 : 0.3);
+                
+            } else {
+                // 如果取消框选（点击空白处）
+                if (event.type === "end") {
+                store.setSelectedCountries([]); // 清空
+                }
+                g.selectAll(".dot").attr("opacity", 0.6).attr("stroke", "#fff");
+            }
+        }
+
         // 更新比例尺
         xScale.domain(d3.extent(data, d => d.deltaCarbon)).range([0, innerWidth]).nice()
         yScale.domain([0, d3.max(data, d => d.totalDisasters)]).range([innerHeight, 0]).nice()
@@ -156,8 +200,24 @@
             .attr('opacity', 0.6)
             .attr('stroke', '#fff')
             .attr('stroke-width', 1)
+            .on('mouseover', (event, d) => {
+                const content = `
+                        <div style="font-weight:bold">${d.name} (${d.iso3})</div>
+                        <div style="color:#e74c3c">灾害总数: ${d.totalDisasters}</div>
+                        <div style="color:#27ae60">碳储量变化: ${d.deltaCarbon.toFixed(2)} MT</div>
+                `;
+                store.showTooltip(event.pageX + 10, event.pageY - 10, content)
+            })
+            .on('mousemove', event => {
+                store.showTooltip(event.pageX + 10, event.pageY - 10, store.tooltip.content);
+            })
+            .on('mouseout', (event) => {
+                store.hideTooltip()
+            })
 
         // console.log('Draw Succefully')
+
+
     }
 
     // ============================================

@@ -24,6 +24,14 @@
           <DisasterComposition/>
         </section>
 
+
+        <div 
+          v-show="store.tooltip.show"
+          class="global-tooltip"
+          :style="{ left: store.tooltip.x + 'px', top: store.tooltip.y + 'px' }"
+          v-html="store.tooltip.content"
+        ></div>
+
       </main>
 
 
@@ -107,5 +115,17 @@ onMounted(() => {
     align-items: center;
     height: 100vh;
     font-size: 2rem;
+  }
+
+  .global-tooltip {
+    position: fixed;
+    pointer-events: none; /* 必须 */
+    background: rgba(255, 255, 255, 0.95);
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    z-index: 10000;
+    font-size: 12px;
   }
 </style>
