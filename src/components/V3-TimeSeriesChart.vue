@@ -183,45 +183,115 @@
         }
 
 
+        // ============================================ Tooltip 交互逻辑
+        // 2. 交互组件：垂直指示线 (始终跟随年份，但设为 pointer-events: none)
+        const focusLine = g.selectAll(".focus-line").data([null]).join("line")
+            .attr("class", "focus-line")
+            .attr("y1", 0)
+            .attr("y2", height)
+            .attr("stroke", "#666")
+            .attr("stroke-width", 1)
+            .attr("stroke-dasharray", "3,3")
+            .style("pointer-events", "none")
+            .style("display", "none");
 
-        // ============================================ Brushing Tool
+        // 3. 交互组件：Brush 初始化
         const brush = d3.brushX()
             .extent([[0, 0], [width, height]])
-            .on("brush", (event) => {
-                // 【优化 1】仅在 V3 内部提供即时反馈（可选）
-                // 如果你希望拖动时 V3 的线变色或者有个预览效果，写在这里
-            })
             .on("end", (event) => {
-                // 【优化 2】只有用户松开鼠标，且确实有选区变化时才更新全局状态
-                if (!event.sourceEvent) return; // 忽略由程序触发的事件
-                
+                if (!event.sourceEvent) return; 
                 if (event.selection) {
                     const [x0, x1] = event.selection.map(xScale.invert);
-                    const roundedRange = [Math.round(x0), Math.round(x1)];
-                    
-                    // 确保年份有效且发生了变化
-                    if (roundedRange[0] !== store.timeRange[0] || roundedRange[1] !== store.timeRange[1]) {
-                        // 只有年份跨度大于 0 才更新，防止点选（click）导致的错误
-                        if (roundedRange[1] > roundedRange[0]) {
-                            store.updateTimeRange(roundedRange);
-                        }
-                    }
+                    store.updateTimeRange([Math.round(x0), Math.round(x1)]);
                 } else {
-                    // 如果用户双击背景取消选区，恢复默认范围
-                    store.updateTimeRange([1992, 2023]);
+                    store.updateTimeRange([1992, 2022]);
                 }
             });
 
-        // 创建或选择 brush 容器
-        const brushG = g.selectAll(".brush-container")
-            .data([null])
-            .join("g")
+        const brushG = g.selectAll(".brush-container").data([null]).join("g")
             .attr("class", "brush-container")
             .call(brush);
 
-        // 默认设置初始位置（可选：根据 store.timeRange 反向绘制矩形）
+        // 4. 【核心重构】在 Brush 覆盖层上实现“邻近探测” Tooltip
+        brushG.select(".overlay")
+            .on("mouseover", () => focusLine.style("display", null))
+            .on("mouseout", () => {
+                focusLine.style("display", "none");
+                store.hideTooltip();
+            })
+            .on("mousemove", (event) => {
+                const [mX, mY] = d3.pointer(event);
+                const year = Math.round(xScale.invert(mX));
+                if (year < 1992 || year > 2022) return;
+
+                // 指示线永远吸附在年份刻度上
+                focusLine.attr("x1", xScale(year)).attr("x2", xScale(year));
+
+                // --- 寻找距离鼠标 Y 轴最近的线条 ---
+                let closestLine = null;
+                let minDistance = 25; // 触发阈值：25px 范围内才显示
+
+                data.forEach(country => {
+                    // 探测碳储量线条 (左轴)
+                    if (showCarbon.value) {
+                        const d = country.carbon.find(p => p.year === year);
+                        if (d) {
+                            const dist = Math.abs(yScaleCarbon(d.value) - mY);
+                            if (dist < minDistance) {
+                                minDistance = dist;
+                                closestLine = {
+                                    name: country.iso,
+                                    type: 'Carbon Stock',
+                                    value: d.value,
+                                    color: '#2ecc71',
+                                    unit: 'MT'
+                                };
+                            }
+                        }
+                    }
+
+                    // 探测灾害线条 (右轴)
+                    if (showDisaster.value && country.disasters) {
+                        const d = country.disasters.find(p => p.year === year);
+                        if (d) {
+                            const dist = Math.abs(yScaleDisaster(d.value) - mY);
+                            if (dist < minDistance) {
+                                minDistance = dist;
+                                closestLine = {
+                                    name: country.iso,
+                                    type: 'Climate Disasters',
+                                    value: d.value,
+                                    color: '#e74c3c',
+                                    unit: 'Count'
+                                };
+                            }
+                        }
+                    }
+                });
+
+                // --- 根据探测结果更新全局 Tooltip ---
+                if (closestLine) {
+                    const content = `
+                        <div style="font-weight:bold; color:${closestLine.color}; border-bottom:1px solid #eee; padding-bottom:3px; margin-bottom:5px;">
+                            ${closestLine.name} - ${closestLine.type}
+                        </div>
+                        <div style="font-size: 0.9rem; line-height: 1.4;">
+                            Year: <strong>${year}</strong><br/>
+                            Value: <strong>${closestLine.value.toLocaleString()} ${closestLine.unit}</strong>
+                        </div>
+                    `;
+                    store.showTooltip(event.pageX + 15, event.pageY - 15, content);
+                } else {
+                    // 如果鼠标离任何线条都很远，则隐藏
+                    store.hideTooltip();
+                }
+            });
+
+        // 5. 【同步刷选框位置】解决“重绘后消失”的问题
         if (store.timeRange) {
-            brushG.call(brush.move, [xScale(store.timeRange[0]), xScale(store.timeRange[1])]);
+            const xStart = xScale(store.timeRange[0]);
+            const xEnd = xScale(store.timeRange[1]);
+            brushG.call(brush.move, [xStart, xEnd]);
         }
 
         

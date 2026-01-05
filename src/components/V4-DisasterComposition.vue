@@ -167,6 +167,32 @@
             .attr('y', d => yScale(d[1]))
             .attr('height', d => yScale(d[0]) - yScale(d[1]))
             .attr('width', xScale.bandwidth())
+            .attr('stroke', '#fff') // 增加白边，让堆叠更有层次感
+            .attr('stroke-width', 0.5)
+            .style('cursor', 'pointer')
+            .on('mouseover', (event, d) => {
+                // 关键点：通过父节点获取灾害类型 (key)
+                const disasterType = d3.select(event.currentTarget.parentNode).datum().key;
+                const countryName = d.data.iso;
+                const value = d[1] - d[0];
+
+                const content = `
+                    <div style="font-weight:bold; border-bottom:1px solid #ddd; margin-bottom:5px;">
+                        ${countryName}
+                    </div>
+                    <div>Disaster: <span style="font-weight:bold;">${disasterType}</span></div>
+                    <div style="color:#e74c3c">Frequency: <strong>${value}</strong></div>
+                `;
+                store.showTooltip(event.pageX + 10, event.pageY - 10, content);
+                d3.select(event.currentTarget).attr('opacity', 0.8);
+            })
+            .on('mousemove', (event) => {
+                store.showTooltip(event.pageX + 10, event.pageY - 10, store.tooltip.content);
+            })
+            .on('mouseout', (event) => {
+                store.hideTooltip();
+                d3.select(event.currentTarget).attr('opacity', 1);
+            });
 
 
         // ================== 添加图例 (Legend) ==================
