@@ -65,7 +65,10 @@
 
         // Each Country has a record
         const result = store.selectedCountries.map(iso3 => {
-            const entry = {iso: iso3}
+            const countryRow = store.forestData.find(d => d.ISO3 === iso3);
+            const countryName = countryRow ? countryRow.Country : iso3;
+
+            const entry = {iso: iso3, name: countryName}
 
             disasterTypes.forEach(type => {
             // Search for the corresponding row in the dataset: 
@@ -128,7 +131,7 @@
 
         // scale set
         const xScale = d3.scaleBand()
-            .domain(data.map(d => d.iso))
+            .domain(data.map(d => d.name))
             .range([0, width])
             .padding(0.3)
 
@@ -164,7 +167,7 @@
         layerGroups.selectAll('rect')
             .data(d => d)
             .join('rect')
-            .attr('x', d => xScale(d.data.iso))
+            .attr('x', d => xScale(d.data.name))
             .attr('y', d => yScale(d[1]))
             .attr('height', d => yScale(d[0]) - yScale(d[1]))
             .attr('width', xScale.bandwidth())
@@ -173,7 +176,7 @@
             .style('cursor', 'pointer')
             .on('mouseover', (event, d) => {
                 const disasterType = d3.select(event.currentTarget.parentNode).datum().key;
-                const countryName = d.data.iso;
+                const countryName = d.data.name;
                 const value = d[1] - d[0];
 
                 const content = `

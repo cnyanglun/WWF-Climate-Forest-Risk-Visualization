@@ -25,9 +25,9 @@
         const [startYear, endYear] = store.timeRange
 
         // 真实交互数据
-        // const years = d3.range(startYear, endYear+1).map(String)
+        const years = d3.range(startYear, endYear+1).map(String)
         // 测试数据
-        const years = d3.range(1998, 2015).map(String)
+        // const years = d3.range(1998, 2015).map(String)
 
 
         const dataMap = new Map()
@@ -38,7 +38,7 @@
             const valEnd = +d[endYear]
 
             if(valStart != null && valEnd != null) {
-                // ISO3 代表国家代号
+                // ISO3 Represent the country code
                 dataMap.set(d.ISO3, {
                     iso3: d.ISO3,
                     name: d.Country,
@@ -65,7 +65,7 @@
 
         // 将Map转换为数组给D3使用
         // 直接将所有的values存到数组中，方便后续处理
-        return Array.from(dataMap.values())
+        return Array.from(dataMap.values()).filter(d => d.totalDisasters > 0)
     })
     // Test Data
     // console.log('scatterData: ', scatterData.value)

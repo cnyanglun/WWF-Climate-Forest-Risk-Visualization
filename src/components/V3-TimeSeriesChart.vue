@@ -27,7 +27,7 @@
     const chartRef = ref(null)
 
     const showCarbon = ref(true);
-    const showDisaster = ref(true);
+    const showDisaster = ref(false);
 
     // ============================================ Process Data ============================================
     // Convert the wide format to the long format
