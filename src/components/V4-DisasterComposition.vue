@@ -125,8 +125,8 @@
         if (!data || data.length === 0) {
             // clear all bars, axis, chart, make sure the chart no elements
             g.selectAll('.layer').remove();
-            g.selectAll('.axis').remove();
-            g.selectAll('.legend').remove();
+            // g.selectAll('.axis').remove();
+            // g.selectAll('.legend').remove();
             return; 
         }
 

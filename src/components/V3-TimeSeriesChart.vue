@@ -96,8 +96,8 @@
         if (!data || data.length === 0) {
             g.selectAll(".line-carbon").remove();
             g.selectAll(".line-disaster").remove();
-            g.selectAll(".axis").remove();
-            g.selectAll(".brush-container").remove();
+            // g.selectAll(".axis").remove();
+            // g.selectAll(".brush-container").remove();
             g.selectAll(".focus-line").remove();
             return; 
         }
