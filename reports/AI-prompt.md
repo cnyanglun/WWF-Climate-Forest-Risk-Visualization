@@ -132,12 +132,45 @@ V1	全球/区域概览地图，(Choropleth Map)
 有效性 (Effectiveness)地图是表示地理数据的最有效方式。
 使用颜色深度通道编码聚合指标（如碳损失率），可以快速利用人类的空间感知能力。
 
+
+
+
+
+**原来的V2方案**
 V2	森林与灾害双重指标排名	散点图 (Scatter Plot)
 支持任务：T2
 表达性 (Expressiveness)利用位置通道识别复合风险最高的极值国家。
 X 轴 (Position): 栖息地退化（聚合碳损失量 - 不能简单使用Carbon stocks in forests参数，而是ΔCarbon stocks=期末值−期初值，比如 ΔCarbon stocks = 2000年的碳储量 - 1999的碳储量）
 Y 轴 (Position): 灾害总数量（聚合总频率 - Total Number of Disasters
 每个散点代表一个国家
+
+
+**修改后的V2**
+V2：栖息地退化与气候风险加速关联图 (Habitat Degradation vs. Climate Risk Acceleration)
+支持任务：T2（识别高风险热点国家）、T1（分析相关性）
+表达性 (Expressiveness)：利用位置通道识别复合风险最高的极值国家。通过象限分布直观区分“环境稳定区”与“气候危机区”。
+X 轴 (Position)：年均碳流失率 (Annual Carbon Loss Rate %)
+计算逻辑：使用所选时段的期初与期末均值对比：
+$$LossRate = \frac{Carbon_{Start} - Carbon_{End}}{Carbon_{Start}} \times 100$$
+
+业务意义：正值代表碳储量减少（栖息地退化），负值代表碳储量增加（栖息地修复）。
+Y 轴 (Position)：相对灾害加速率 (Relative Disaster Acceleration %)
+计算逻辑：采用对称百分比变化 (Symmetric Percentage Change) 公式：
+
+$$Growth = \frac{LateAvg - EarlyAvg}{(EarlyAvg + LateAvg) / 2} \times 100$$
+
+（其中 LateAvg 和 EarlyAvg 分别为所选时间范围后半程和前半程的灾害均值）。
+业务意义：解决初始方案中因基数过小导致的“百分比爆炸”问题。数值严格限制在 [−200,200] 之间，衡量灾害频率相对于该国自身历史水平的增长剧烈程度。
+每个散点代表一个国家：
+排除 WLD (世界) 或 AETMP (发达经济体) 等非国家实体的聚合数据，确保坐标轴不被极大值挤压。
+交互与视觉编码：
+颜色：统一使用红色（如 #e74c3c）代表预警，配合透明度观察数据密度。
+联动：支持 Brush (框选) 多个国家以过滤 V1、V3 和 V4；同时响应 V1 的点击，实现选中点的放大与置顶高亮。
+动画：当年份范围切换时，散点通过 CubicOut 缓动动画平滑漂移到新位置，展示国家风险的动态演变。
+
+
+
+
 
 V3	时间序列对比图	折线图 (Line Chart)
 支持任务：T1, T3
