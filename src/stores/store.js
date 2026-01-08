@@ -34,9 +34,9 @@ export const useStore = defineStore({
       try{
         // Load all data in parallel
         const [forest, disaster, geo] = await Promise.all([
-          d3.csv('/13_Forest_and_Carbon.csv'),
-          d3.csv('/14_Climate-related_Disasters_Frequency.csv'),
-          d3.json('/world-countries.geojson')
+          d3.csv('13_Forest_and_Carbon.csv'),
+          d3.csv('14_Climate-related_Disasters_Frequency.csv'),
+          d3.json('world-countries.geojson')
         ])
 
 
