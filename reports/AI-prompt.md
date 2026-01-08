@@ -114,6 +114,11 @@ Analyze (Correlation, Trend): 比较两个属性（森林健康 vs. 灾害频率
 T2	识别气候灾害总数最多且森林碳储量减少最快的前 5 个国家/地区。
 Identify (Rank, Extremes): 找出在两个聚合指标上排名最高的项目（国家）。
 
+**修改T2**
+T2：识别森林碳储量流失率最高且气候灾害风险正急剧加速的“双重高压”热点国家。
+Identify "Double-Pressure" hotspots exhibiting the highest annual carbon loss rates and significant climate disaster acceleration.
+
+
 T3	分析在某一时间段，展示每个所选国家哪种灾难最频发。
 Compare (Distribution): 对比所选目标集合中，每个项目（国家）在特定属性（灾害类型）上的分布构成。
 
