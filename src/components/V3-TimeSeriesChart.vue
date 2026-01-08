@@ -42,7 +42,7 @@
             const countryResult = { iso: targetISO, carbon: null, disasters: null };
 
             // 1. Get Carbon Stock
-            const forestRow = store.forestData.find(d => d.ISO3 === targetISO);
+            const forestRow = store.forestData.find(d => d.ISO3 === targetISO && d.Indicator === 'Carbon stocks in forests');
             countryResult.carbon = years.map(y => ({
                 year: y,
                 value: (forestRow && forestRow[y]) ? +forestRow[y] : 0
@@ -92,7 +92,15 @@
 
     const updateChart = () => {
         const data = lineData.value;
-        if(data.length === 0) return 
+        // 如果没有选中任何国家，清除所有线条、坐标轴和 Brush 界面
+        if (!data || data.length === 0) {
+            g.selectAll(".line-carbon").remove();
+            g.selectAll(".line-disaster").remove();
+            g.selectAll(".axis").remove();
+            g.selectAll(".brush-container").remove();
+            g.selectAll(".focus-line").remove();
+            return; 
+        }
 
         const width = chartRef.value.clientWidth - margin.left - margin.right;
         const height = chartRef.value.clientHeight - margin.top - margin.bottom;

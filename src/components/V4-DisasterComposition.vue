@@ -65,7 +65,7 @@
 
         // Each Country has a record
         const result = store.selectedCountries.map(iso3 => {
-            const countryRow = store.forestData.find(d => d.ISO3 === iso3);
+            const countryRow = store.forestData.find(d => d.ISO3 === iso3 && d.Indicator === 'Carbon stocks in forests');
             const countryName = countryRow ? countryRow.Country : iso3;
 
             const entry = {iso: iso3, name: countryName}
@@ -120,7 +120,15 @@
 
     const updateChart = () => {
         const {data, keys} = stackedData.value
-        if(!data || data.length === 0) return
+        
+        // 如果没有数据（即选中国家为空）
+        if (!data || data.length === 0) {
+            // 清除所有柱子、坐标轴和图例，确保视图更新为空
+            g.selectAll('.layer').remove();
+            g.selectAll('.axis').remove();
+            g.selectAll('.legend').remove();
+            return; // 清除完后再返回
+        }
 
         const width = chartRef.value.clientWidth - margin.left - margin.right;
         const height = chartRef.value.clientHeight - margin.top - margin.bottom;

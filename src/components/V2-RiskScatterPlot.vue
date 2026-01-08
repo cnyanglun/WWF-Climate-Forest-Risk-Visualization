@@ -1,6 +1,6 @@
 <template>
     <div class="view-container">
-        <h3>V2: Compound Risk: Disasters vs. Carbon Loss</h3>
+        <h3>V2: Habitat Degradation vs. Climate Risk Acceleration</h3>
         <div ref="chartRef" class="chart-area"></div>
         <div class="tooltip" ref="tooltipRef"></div>
     </div>
@@ -20,53 +20,61 @@
     // ============================================ Process Data ============================================
 
     const scatterData = computed(() => {
-        if (!store.forestData || !store.disasterData ) return []
-
+        if (!store.forestData.length || !store.disasterData.length) return []
         const [startYear, endYear] = store.timeRange
-
-        // 真实交互数据
-        const years = d3.range(startYear, endYear+1).map(String)
-        // 测试数据
-        // const years = d3.range(1998, 2015).map(String)
-
-
+        
+        // 将时间段平分为两部分，对比“过去”和“现在”
+        const midYear = Math.floor((startYear + endYear) / 2)
+        const earlyYears = d3.range(startYear, midYear + 1).map(String)
+        const lateYears = d3.range(midYear + 1, endYear + 1).map(String)
+        
         const dataMap = new Map()
 
-        // 1. 提取每个国家的碳储量变化
-        store.forestData.forEach(d => {
-            const valStart = +d[startYear]
-            const valEnd = +d[endYear]
+        // 1. 计算 X 轴：碳流失百分比 (衡量森林消失得有多快)
+        store.forestData
+            .filter(d => d.Indicator === 'Carbon stocks in forests')
+            .forEach(d => {
+                const valStart = +d[startYear]
+                const valEnd = +d[endYear]
+                if (valStart > 0) {
+                    const lossRate = ((valStart - valEnd) / valStart) * 100
+                    dataMap.set(d.ISO3, {
+                        iso3: d.ISO3,
+                        name: d.Country,
+                        carbonLossRate: lossRate,
+                        earlyAvgDisaster: 0,
+                        lateAvgDisaster: 0
+                    })
+                }
+            })
 
-            if(valStart != null && valEnd != null) {
-                // ISO3 Represent the country code
-                dataMap.set(d.ISO3, {
-                    iso3: d.ISO3,
-                    name: d.Country,
-                    deltaCarbon: valEnd - valStart,
-                    totalDisasters: 0,                          // init count, set the value later
-                })
-            }
-        })
+        // 2. 计算 Y 轴：灾害频率增长率 (衡量气候风险是否在加速)
+        store.disasterData
+            .filter(d => d.Indicator.includes('TOTAL'))
+            .forEach(d => {
+                if (dataMap.has(d.ISO3)) {
+                    const earlyAvg = d3.sum(earlyYears, y => +d[y] || 0) / earlyYears.length
+                    const lateAvg = d3.sum(lateYears, y => +d[y] || 0) / lateYears.length
+                    
+                    const item = dataMap.get(d.ISO3)
+                    
+                    // 使用对称增长率公式，避免分母为 0 或过小
+                    const denominator = (earlyAvg + lateAvg) / 2
+                    
+                    if (denominator > 0) {
+                        item.disasterSymmetricGrowth = ((lateAvg - earlyAvg) / denominator) * 100
+                    } else {
+                        item.disasterSymmetricGrowth = 0
+                    }
+                }
+            })
 
-        // 2. 处理灾害数据，重要的参数是TOTAL，只选择这个
-        const totalDisasterRows = store.disasterData.filter(d => 
-            d.Indicator.includes('Number of Disasters: TOTAL')
-        )
-
-        totalDisasterRows.forEach(d => {
-            // 只处理在森林数据集中也存在的国家
-            if(dataMap.has(d.ISO3)){
-                let sum = 0
-                // 累加选定年份段内所有灾害次数
-                years.forEach(y => { sum += (d[y] || 0) })
-                dataMap.get(d.ISO3).totalDisasters = sum
-            }
-        })
-
-        // 将Map转换为数组给D3使用
-        // 直接将所有的values存到数组中，方便后续处理
-        return Array.from(dataMap.values()).filter(d => d.totalDisasters > 0)
+        // 过滤：只展示有数据变动的国家
+        return Array.from(dataMap.values()).filter(d => d.disasterSymmetricGrowth !== undefined)
     })
+
+
+
     // Test Data
     // console.log('scatterData: ', scatterData.value)
 
@@ -75,7 +83,7 @@
      /** @type {d3.ScaleLinear<number, number>} */
     let xScale, yScale
 
-    const margin = {top: 20, right:30, bottom: 30, left: 60}
+    const margin = {top: 20, right:30, bottom: 30, left: 80}
 
     const initChart = () => {
         if(!chartRef.value) return
@@ -129,8 +137,8 @@
 
                 // 2. Look for which points are within the range
                 const selected = data.filter(d => {
-                const cx = xScale(d.deltaCarbon);
-                const cy = yScale(d.totalDisasters);
+                const cx = xScale(d.carbonLossRate);
+                const cy = yScale(d.disasterSymmetricGrowth);
                 return x0 <= cx && cx <= x1 && y0 <= cy && cy <= y1;
                 }).map(d => d.iso3);
 
@@ -155,8 +163,16 @@
         }
 
         // Update Scale
-        xScale.domain(d3.extent(data, d => d.deltaCarbon)).range([0, innerWidth]).nice()
-        yScale.domain([0, d3.max(data, d => d.totalDisasters)]).range([innerHeight, 0]).nice()
+        // X轴使用线性刻度，展示变化率百分比
+        xScale = d3.scaleLinear()
+            .domain(d3.extent(data, d => d.carbonLossRate))
+            .range([0, innerWidth]).nice()
+        // Y轴建议使用对数刻度 (Log Scale)，因为密度差异可能极大（如 0.01 到 100）
+        yScale = d3.scaleLinear()
+            .domain(d3.extent(data, d => d.disasterSymmetricGrowth))
+            .range([innerHeight, 0]).nice()
+
+
 
         // Draw X Axis
         g.selectAll('.x-axis').remove()
@@ -170,7 +186,7 @@
             .attr('fill', 'black')
             .attr('text-anchor', 'end')
             .style('font-weight', 'bold')
-            .text('Δ Carbon Stock (MT)')
+            .text('Annual Carbon Loss Rate (%)')
 
 
 
@@ -185,7 +201,18 @@
             .attr("fill", "black")
             .attr("text-anchor", "start")
             .style("font-weight", "bold")
-            .text("Disaster Count");
+            .text("Disaster Frequency Growth (%)");
+
+
+        g.selectAll(".ref-line").remove();
+        // X = 0 参考线
+        g.append("line").attr("class", "ref-line")
+            .attr("x1", xScale(0)).attr("y1", 0).attr("x2", xScale(0)).attr("y2", innerHeight)
+            .attr("stroke", "#ccc").attr("stroke-dasharray", "4");
+        // Y = 0 参考线
+        g.append("line").attr("class", "ref-line")
+            .attr("x1", 0).attr("y1", yScale(0)).attr("x2", innerWidth).attr("y2", yScale(0))
+            .attr("stroke", "#ccc").attr("stroke-dasharray", "4");
 
 
         // Draw Scatter
@@ -193,8 +220,8 @@
             .data(data, d => d.iso3)        // ISO3 is country id
             .join('circle')
             .attr('class', 'dot')
-            .attr('cx', d => xScale(d.deltaCarbon))
-            .attr('cy', d => yScale(d.totalDisasters))
+            .attr('cx', d => xScale(d.carbonLossRate))
+            .attr('cy', d => yScale(d.disasterSymmetricGrowth))
             .attr('r', 6)
             .attr('fill', '#e74c3c')
             .attr('opacity', 0.6)
@@ -202,9 +229,18 @@
             .attr('stroke-width', 1)
             .on('mouseover', (event, d) => {
                 const content = `
-                        <div style="font-weight:bold">${d.name} (${d.iso3})</div>
-                        <div style="color:#e74c3c">Disaster Count: ${d.totalDisasters}</div>
-                        <div style="color:#27ae60">Carbon Stock Change: ${d.deltaCarbon.toFixed(2)} MT</div>
+                    <div style="font-weight:bold; border-bottom:1px solid #ddd; margin-bottom:5px;">
+                        ${d.name} (${d.iso3})
+                    </div>
+                    <div style="color:${d.disasterSymmetricGrowth > 0 ? '#e74c3c' : '#27ae60'};">
+                        <strong>灾害频率增长:</strong> ${d.disasterSymmetricGrowth.toFixed(1)}%
+                    </div>
+                    <div style="color:${d.carbonLossRate > 0 ? '#e67e22' : '#2980b9'};">
+                        <strong>碳储量流失率:</strong> ${d.carbonLossRate.toFixed(2)}%
+                    </div>
+                    <div style="font-size:10px; color:#666; margin-top:5px;">
+                        (对比选定时段的前后半程均值)
+                    </div>
                 `;
                 store.showTooltip(event.pageX + 10, event.pageY - 10, content)
             })
@@ -240,6 +276,35 @@
     }
 
     watch(watchData, watchProcess, {deep: true})
+
+
+    // 3. 【新增】高亮联动逻辑：当选中的国家列表变化时，仅更新点的样式
+    watch(() => store.selectedCountries, (newSelected) => {
+        if (!g) return;
+
+        const dots = g.selectAll('.dot');
+
+        // 如果没有选中项，恢复初始半透明状态
+        if (newSelected.length === 0) {
+            dots.transition()
+                .duration(300)
+                .attr('opacity', 0.6)
+                .attr('stroke', '#fff')
+                .attr('stroke-width', 1)
+                .attr('r', 6);
+        } else {
+            // 突出显示选中的国家，压暗其他国家
+            dots.transition()
+                .duration(300)
+                .attr('opacity', d => newSelected.includes(d.iso3) ? 1 : 0.1)
+                .attr('stroke', d => newSelected.includes(d.iso3) ? "#000" : "#fff")
+                .attr('stroke-width', d => newSelected.includes(d.iso3) ? 2.5 : 0.5)
+                .attr('r', d => newSelected.includes(d.iso3) ? 9 : 5); // 选中点放大，增强视觉反馈
+
+            // 关键交互：将被选中的点提升到层级最上方，避免被重叠的点遮挡
+            dots.filter(d => newSelected.includes(d.iso3)).raise();
+        }
+    }, { deep: true });
 
 
 </script>

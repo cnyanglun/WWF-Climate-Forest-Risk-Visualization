@@ -39,7 +39,17 @@ export const useStore = defineStore({
           d3.json('/world-countries.geojson')
         ])
 
-        this.forestData = forest.filter(d => d.Indicator === 'Carbon stocks in forests');
+
+        const requiredIndicators = [
+          'Carbon stocks in forests', 
+          'Index of carbon stocks in forests', 
+          'Share of forest area',
+          'Forest area',
+          'Land area',
+          'Index of forest extent'
+        ];
+
+        this.forestData = forest.filter(d => requiredIndicators.includes(d.Indicator));
 
         const yearColumns = d3.range(1992, 2024).map(String)
         this.disasterData = disaster.map(d => {

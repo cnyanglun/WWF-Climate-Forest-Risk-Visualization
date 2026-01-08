@@ -3,6 +3,11 @@
     <div class="header-row">
       <h3>V1: Global Carbon Sink Risk</h3>
       <div class="legend-container" ref="legendRef"></div>
+
+      <!-- <div class="controls">
+        <button @click="resetZoom" class="reset-btn">Reset View</button>
+        <div class="legend-container" ref="legendRef"></div>
+      </div> -->
     </div>
 
     <div ref="chartRef" class="chart-area"></div>
@@ -24,13 +29,15 @@
     const [start, end] = store.timeRange
     const metrics = new Map()
 
-    store.forestData.forEach(d => {
-      const valStart = +d[start]
-      const valEnd = +d[end]
-      if(!isNaN(valStart) && !isNaN(valEnd)){
-        metrics.set(d.ISO3, valEnd - valStart)      // end - start
-      }
-    })
+    store.forestData
+      .filter(d => d.Indicator === 'Carbon stocks in forests')
+      .forEach(d => {
+        const valStart = +d[start]
+        const valEnd = +d[end]
+        if(!isNaN(valStart) && !isNaN(valEnd)){
+          metrics.set(d.ISO3, valEnd - valStart)      // end - start
+        }
+      })
 
     return metrics
   })
@@ -52,7 +59,17 @@
       .attr('width', width)
       .attr('height', height)
 
+
     g = svg.append('g')
+
+    const zoom = d3.zoom()
+      .scaleExtent([1,8])   // max 8 times， min 1 time
+      .on('zoom', (event) => {
+        g.attr('transform', event.transform);
+      })
+
+    // 使用缩放器
+    svg.call(zoom)
 
     // Use the natural Earth projection
     projection = d3.geoNaturalEarth1()
@@ -249,4 +266,24 @@
   .country-selected {
     filter: drop-shadow(0px 0px 2px rgba(0,0,0,0.5));
   }
+
+  .country {
+    transition: fill 0.2s, opacity 0.2s;
+    /* 【关键修改】确保缩放时边界线粗细不变 */
+    vector-effect: non-scaling-stroke;
+  }
+
+  /* 使用 :deep 穿透，确保动态生成的 D3 元素能应用样式 */
+  .chart-area :deep(.country) {
+    transition: fill 0.2s, opacity 0.2s;
+    vector-effect: non-scaling-stroke; /* 关键：缩放时线宽固定 */
+  }
+
+  .chart-area :deep(.country:hover) {
+    opacity: 0.8;
+    filter: brightness(1.1);
+    cursor: pointer;
+  }
+
+  
 </style>
