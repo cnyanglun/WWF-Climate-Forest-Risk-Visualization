@@ -92,7 +92,7 @@
 
     const updateChart = () => {
         const data = lineData.value;
-        // 如果没有选中任何国家，清除所有线条、坐标轴和 Brush 界面
+        // No selected countries, clear or line
         if (!data || data.length === 0) {
             g.selectAll(".line-carbon").remove();
             g.selectAll(".line-disaster").remove();

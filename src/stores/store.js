@@ -27,12 +27,12 @@ export const useStore = defineStore({
   }),
 
   actions: {
-    // 最重要的加载数据
+    // The most important function
     async loadData() {
       this.isLoading = true
 
       try{
-        // 并行加载所有数据
+        // Load all data in parallel
         const [forest, disaster, geo] = await Promise.all([
           d3.csv('/13_Forest_and_Carbon.csv'),
           d3.csv('/14_Climate-related_Disasters_Frequency.csv'),
@@ -54,7 +54,7 @@ export const useStore = defineStore({
         const yearColumns = d3.range(1992, 2024).map(String)
         this.disasterData = disaster.map(d => {
           yearColumns.forEach(year => {
-            // 将缺失值设置为0
+            // The loss value should be 0 defaulty
             d[year] = d[year] === "" ? 0 : +d[year]
           })
           return d

@@ -269,7 +269,7 @@
 
   .country {
     transition: fill 0.2s, opacity 0.2s;
-    /* 【关键修改】确保缩放时边界线粗细不变 */
+    /* Make sure the border line not change even zoom in */
     vector-effect: non-scaling-stroke;
   }
 

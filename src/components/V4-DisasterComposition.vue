@@ -121,13 +121,13 @@
     const updateChart = () => {
         const {data, keys} = stackedData.value
         
-        // 如果没有数据（即选中国家为空）
+        // if No selected Countries
         if (!data || data.length === 0) {
-            // 清除所有柱子、坐标轴和图例，确保视图更新为空
+            // clear all bars, axis, chart, make sure the chart no elements
             g.selectAll('.layer').remove();
             g.selectAll('.axis').remove();
             g.selectAll('.legend').remove();
-            return; // 清除完后再返回
+            return; 
         }
 
         const width = chartRef.value.clientWidth - margin.left - margin.right;

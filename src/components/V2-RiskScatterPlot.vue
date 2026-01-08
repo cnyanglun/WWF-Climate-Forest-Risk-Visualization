@@ -23,14 +23,13 @@
         if (!store.forestData.length || !store.disasterData.length) return []
         const [startYear, endYear] = store.timeRange
         
-        // 将时间段平分为两部分，对比“过去”和“现在”
         const midYear = Math.floor((startYear + endYear) / 2)
         const earlyYears = d3.range(startYear, midYear + 1).map(String)
         const lateYears = d3.range(midYear + 1, endYear + 1).map(String)
         
         const dataMap = new Map()
 
-        // 1. 计算 X 轴：碳流失百分比 (衡量森林消失得有多快)
+        // x axis: Carbon loss rate (which mean how many extent forest be destroy)
         store.forestData
             .filter(d => d.Indicator === 'Carbon stocks in forests')
             .forEach(d => {
@@ -48,7 +47,7 @@
                 }
             })
 
-        // 2. 计算 Y 轴：灾害频率增长率 (衡量气候风险是否在加速)
+        // Y Axis: Disaster frequency rate (Which mean if the disaster more worse)
         store.disasterData
             .filter(d => d.Indicator.includes('TOTAL'))
             .forEach(d => {
@@ -69,7 +68,7 @@
                 }
             })
 
-        // 过滤：只展示有数据变动的国家
+        // Filter: only show the country who change data
         return Array.from(dataMap.values()).filter(d => d.disasterSymmetricGrowth !== undefined)
     })
 
@@ -204,12 +203,13 @@
             .text("Disaster Frequency Growth (%)");
 
 
+        // Dot line, in order to reference
         g.selectAll(".ref-line").remove();
-        // X = 0 参考线
+        // X = 0 line of reference
         g.append("line").attr("class", "ref-line")
             .attr("x1", xScale(0)).attr("y1", 0).attr("x2", xScale(0)).attr("y2", innerHeight)
             .attr("stroke", "#ccc").attr("stroke-dasharray", "4");
-        // Y = 0 参考线
+        // Y = 0 line of reference
         g.append("line").attr("class", "ref-line")
             .attr("x1", 0).attr("y1", yScale(0)).attr("x2", innerWidth).attr("y2", yScale(0))
             .attr("stroke", "#ccc").attr("stroke-dasharray", "4");
@@ -233,13 +233,13 @@
                         ${d.name} (${d.iso3})
                     </div>
                     <div style="color:${d.disasterSymmetricGrowth > 0 ? '#e74c3c' : '#27ae60'};">
-                        <strong>灾害频率增长:</strong> ${d.disasterSymmetricGrowth.toFixed(1)}%
+                        <strong>Disaster Freq Rate:</strong> ${d.disasterSymmetricGrowth.toFixed(1)}%
                     </div>
                     <div style="color:${d.carbonLossRate > 0 ? '#e67e22' : '#2980b9'};">
-                        <strong>碳储量流失率:</strong> ${d.carbonLossRate.toFixed(2)}%
+                        <strong>Carbon Loss Rate:</strong> ${d.carbonLossRate.toFixed(2)}%
                     </div>
                     <div style="font-size:10px; color:#666; margin-top:5px;">
-                        (对比选定时段的前后半程均值)
+                        (Avg value)
                     </div>
                 `;
                 store.showTooltip(event.pageX + 10, event.pageY - 10, content)
@@ -279,12 +279,13 @@
 
 
     // 3. 【新增】高亮联动逻辑：当选中的国家列表变化时，仅更新点的样式
+    // Connect the update of selectedCountries, highlight dots when selected countries update
     watch(() => store.selectedCountries, (newSelected) => {
         if (!g) return;
 
         const dots = g.selectAll('.dot');
 
-        // 如果没有选中项，恢复初始半透明状态
+        // No selected countries, semitransparent
         if (newSelected.length === 0) {
             dots.transition()
                 .duration(300)
@@ -293,7 +294,7 @@
                 .attr('stroke-width', 1)
                 .attr('r', 6);
         } else {
-            // 突出显示选中的国家，压暗其他国家
+            // Highlight selected countries
             dots.transition()
                 .duration(300)
                 .attr('opacity', d => newSelected.includes(d.iso3) ? 1 : 0.1)
@@ -301,7 +302,7 @@
                 .attr('stroke-width', d => newSelected.includes(d.iso3) ? 2.5 : 0.5)
                 .attr('r', d => newSelected.includes(d.iso3) ? 9 : 5); // 选中点放大，增强视觉反馈
 
-            // 关键交互：将被选中的点提升到层级最上方，避免被重叠的点遮挡
+            // Move the selected dots to upper layer, avoid to be hidden
             dots.filter(d => newSelected.includes(d.iso3)).raise();
         }
     }, { deep: true });
