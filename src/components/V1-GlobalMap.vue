@@ -273,10 +273,10 @@
     vector-effect: non-scaling-stroke;
   }
 
-  /* 使用 :deep 穿透，确保动态生成的 D3 元素能应用样式 */
+
   .chart-area :deep(.country) {
     transition: fill 0.2s, opacity 0.2s;
-    vector-effect: non-scaling-stroke; /* 关键：缩放时线宽固定 */
+    vector-effect: non-scaling-stroke; 
   }
 
   .chart-area :deep(.country:hover) {

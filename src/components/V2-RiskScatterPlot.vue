@@ -162,11 +162,10 @@
         }
 
         // Update Scale
-        // X轴使用线性刻度，展示变化率百分比
+        // X axis show scale clearly， show the percentage
         xScale = d3.scaleLinear()
             .domain(d3.extent(data, d => d.carbonLossRate))
             .range([0, innerWidth]).nice()
-        // Y轴建议使用对数刻度 (Log Scale)，因为密度差异可能极大（如 0.01 到 100）
         yScale = d3.scaleLinear()
             .domain(d3.extent(data, d => d.disasterSymmetricGrowth))
             .range([innerHeight, 0]).nice()
@@ -278,7 +277,6 @@
     watch(watchData, watchProcess, {deep: true})
 
 
-    // 3. 【新增】高亮联动逻辑：当选中的国家列表变化时，仅更新点的样式
     // Connect the update of selectedCountries, highlight dots when selected countries update
     watch(() => store.selectedCountries, (newSelected) => {
         if (!g) return;
